@@ -7,6 +7,11 @@ import sys
 # OpenAI API key
 client = OpenAI(api_key="<API-key>")
 
+# Check device index
+#for index, name in enumerate(sr.Microphone.list_microphone_names()):
+    #print("Microphone with name \"{1}\" found for `Microphone(device_index={0})`".format(index, name))
+
+
 # Text-to-speech engine
 engine = pyttsx3.init()
 engine.setProperty('volume',0.2)
