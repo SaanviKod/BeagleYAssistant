@@ -1,0 +1,145 @@
+#include <dt-bindings/gpio/gpio.h>
+#include "ti/k3-pinctrl.h"
+
+/dts-v1/;
+/plugin/;
+
+&main_pmx0 {
+	aiy_voice_hat_gpio0_pins_default: aiy-voice-hat-gpio0-default-pins {
+		pinctrl-single,pins = <
+			J722S_IOPAD(0x0088, PIN_OUTPUT, 7) /* (N22) GPMC0_OEn_REn.GPIO0_33 */
+			J722S_IOPAD(0x0094, PIN_OUTPUT, 7) /* (P26) GPMC0_BE1n.GPIO0_36 */
+			J722S_IOPAD(0x009c, PIN_OUTPUT, 7) /* (W26) GPMC0_WAIT1.GPIO0_38 */
+			J722S_IOPAD(0x00a8, PIN_OUTPUT, 7) /* (R27) GPMC0_CSn0.GPIO0_41 */
+			J722S_IOPAD(0x00ac, PIN_OUTPUT, 7) /* (P21) GPMC0_CSn1.GPIO0_42 */
+		>;
+	};
+	aiy_voice_hat_gpio1_pins_default: aiy-voice-hat-gpio1-default-pins {
+		pinctrl-single,pins = <
+			J722S_IOPAD(0x0198, PIN_OUTPUT, 7) /* (A26) MCASP0_AXR2.GPIO1_8 */
+			J722S_IOPAD(0x01b4, PIN_OUTPUT, 7) /* (B20) SPI0_CS0.GPIO1_15 */
+			J722S_IOPAD(0x01b8, PIN_OUTPUT, 7) /* (C20) SPI0_CS1.GPIO1_16 */
+			J722S_IOPAD(0x01bc, PIN_OUTPUT, 7) /* (D20) SPI0_CLK.GPIO1_17 */
+			J722S_IOPAD(0x01c0, PIN_OUTPUT, 7) /* (E19) SPI0_D0.GPIO1_18 */
+		>;
+	};
+	aiy_amp_enable_pins: aiy-amp-enable-pins {
+		pinctrl-single,pins = <
+			J722S_IOPAD(0x0194, PIN_OUTPUT, 7) /* (A25) MCASP0_AXR3.GPIO1_7 */
+		>;
+	};
+	aiy_i2s_pins: aiy-i2s-pins {
+		pinctrl-single,pins = <
+			J722S_IOPAD(0x01a4, PIN_INPUT, 0) /* (D25) MCASP0_ACLKX */
+			J722S_IOPAD(0x01a8, PIN_INPUT, 0) /* (C26) MCASP0_AFSX */
+			J722S_IOPAD(0x01a0, PIN_INPUT, 0) /* (F23) MCASP0_AXR0 */
+			J722S_IOPAD(0x019c, PIN_INPUT, 0) /* (B25) MCASP0_AXR1 */
+		>;
+	};
+};
+
+&mcu_pmx0 {
+	aiy_voice_hat_mcu_gpio_pins_default: aiy-voice-hat-mcu-gpio-default-pins {
+		pinctrl-single,pins = <
+			J722S_MCU_IOPAD(0x001c, PIN_INPUT, 7) /* (B5) MCU_UART0_CTSn.MCU_GPIO0_7 */
+		>;
+	};
+	wkup_i2c0_pins_default: wkup_i2c0-default-pins {
+		pinctrl-single,pins = <
+			J722S_MCU_IOPAD(0x004c, PIN_INPUT, 0) /* (B9) WKUP_I2C0_SCL */
+			J722S_MCU_IOPAD(0x0050, PIN_INPUT, 0) /* (D11) WKUP_I2C0_SDA */
+		>;
+	};
+};
+
+&sound0 {
+	status = "disabled";
+};
+
+&mcasp1 {
+	status = "disabled";
+};
+
+&{/} {
+	aiy_keys: aiy-keys {
+		compatible = "gpio-keys";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&aiy_voice_hat_gpio0_pins_default>,
+			    <&aiy_voice_hat_gpio1_pins_default>,
+			    <&aiy_voice_hat_mcu_gpio_pins_default>;
+
+		blue-btn {
+			label = "AIY Hat Blue Button";
+			linux,code = <103>;
+			gpios = <&mcu_gpio0 7 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
+	sound1: sound@1 {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "i2s max98357a";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,bitclock-master = <&speaker_dailink_master>;
+		simple-audio-card,frame-master = <&speaker_dailink_master>;
+
+		speaker_dailink_master: simple-audio-card,cpu {
+			sound-dai = <&mcasp0>;
+			system-clock-direction-out;
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&max98357a>;
+		};
+	};
+
+	max98357a: amplifier {
+		compatible = "maxim,max98357a";
+		#sound-dai-cells = <0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&aiy_amp_enable_pins>;
+		sdmode-gpios = <&main_gpio1 7 GPIO_ACTIVE_HIGH>;
+	};
+
+	sound2: sound@2 {
+		status = "disabled";
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "i2s ics43432";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,bitclock-master = <&microphone_dailink_master>;
+		simple-audio-card,frame-master = <&microphone_dailink_master>;
+
+		simple-audio-card,cpu {
+			sound-dai = <&mcasp0>;
+		};
+
+		microphone_dailink_master: simple-audio-card,codec {
+			sound-dai = <&ics43432>;
+		};
+	};
+
+	ics43432: ics43432 {
+		status = "disabled";
+		compatible = "invensense,ics43432";
+		#sound-dai-cells = <0>;
+	};
+};
+
+&mcasp0 {
+	status = "okay";
+	#sound-dai-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&aiy_i2s_pins>;
+	auxclk-fs-ratio = <256>;
+	op-mode = <0>;	/* MCASP_IIS_MODE */
+	tdm-slots = <2>;
+	serial-dir = <  /* 0: INACTIVE, 1: TX, 2: RX */
+		2 1 0 0
+		0 0 0 0
+		0 0 0 0
+		0 0 0 0
+	>;
+	tx-num-evt = <32>;
+	rx-num-evt = <32>;
+};
+
